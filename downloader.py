@@ -119,25 +119,36 @@ class YouTubeDownloader:
         try:
             ydl_opts = {
                 'extract_flat': True,  # Extract video information without downloading
-                'noplaylist': False,   # Ensure we get all videos in the playlist
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
 
-                total_videos = len(info_dict['entries'])
-                self.video_list_label.config(text=f"Playlist Videos: {total_videos}")
+                # Check if the URL is for a single video or a playlist
+                if "entries" in info_dict:
+                    # Playlist
+                    total_videos = len(info_dict['entries'])
+                    self.video_list_label.config(text=f"Playlist Videos: {total_videos}")
 
-                # List video titles and set initial status and size
-                for entry in info_dict['entries']:
-                    title = entry['title']
+                    for entry in info_dict['entries']:
+                        title = entry['title']
+                        self.video_tree.insert("", "end", values=(title, "Unknown", "Ready", "0.00"))
+                        self.video_entries.append({"title": title, "size": "Unknown", "status": "Ready"})
+
+                    # Start downloading playlist
+                    self.start_download(info_dict['entries'])
+
+                else:
+                    # Single video
+                    title = info_dict['title']
                     self.video_tree.insert("", "end", values=(title, "Unknown", "Ready", "0.00"))
                     self.video_entries.append({"title": title, "size": "Unknown", "status": "Ready"})
 
-                # Start downloading
-                self.start_download(info_dict['entries'])
+                    # Start downloading single video
+                    self.start_download([info_dict])
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to fetch playlist: {str(e)}")
+            messagebox.showerror("Error", f"Failed to fetch video: {str(e)}")
+
 
     def start_download(self, entries):
         total_size = 0
